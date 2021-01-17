@@ -1,0 +1,73 @@
+-- 1. Составьте список пользователей users, которые осуществили хотя бы один заказ orders в интернет магазине.
+
+mysql> select u.id,u.login,u.email from sample.users u join (select distinct user_id from sample.orders) r on u.id = r.user_id order by u.id;
+
++------+-----------+--------------------------------+
+| id   | login     | email                          |
++------+-----------+--------------------------------+
+|    1 | Beaulah   | aullrich@example.org           |
+|    4 | Sebastian | shany10@example.com            |
+|    5 | Barton    | geovanni.sauer@example.org     |
+|    8 | Lysanne   | swaniawski.beverly@example.org |
+|    9 | Dewitt    | daphnee.emmerich@example.org   |
+|   10 | Keaton    | lourdes16@example.org          |
+|   12 | Winfield  | jacklyn.lang@example.net       |
+|   13 | Brody     | grimes.ruby@example.com        |
+|   15 | Prudence  | loren52@example.org            |
+|   17 | Dallas    | ella.conn@example.org          |
+|   18 | Reyna     | iward@example.org              |
+|   19 | Stefanie  | marta50@example.net            |
+|   20 | Nicola    | renner.mary@example.com        |
++------+-----------+--------------------------------+
+13 rows in set (0.00 sec)
+
+-- 2. Выведите список товаров products и разделов catalogs, который соответствует товару.
+
+mysql> select p.name as product, c.name as catalog from products p join catalogs c on p.catalog_id = c.id;
+
++----------------------+-------------------------------------+
+| product              | catalog                             |
++----------------------+-------------------------------------+
+| коньячок             | Что выпить                          |
+| джин                 | Что выпить                          |
+| наливочка            | Что выпить                          |
+| вискарик             | Что выпить                          |
+| водочка              | Что выпить                          |
+| портвешок            | Что выпить                          |
+| огурчик              | Чем закусить                        |
+| сало                 | Чем закусить                        |
+| яблочко              | Чем закусить                        |
+| брускетка            | Чем закусить                        |
+| икорка               | Чем закусить                        |
+| пирожок              | Чем закусить                        |
+| лимончик             | Чем закусить                        |
+| оливка               | Чем закусить                        |
+| грибочек             | Чем закусить                        |
+| рюмочка              | Что для этого нужно                 |
+| стаканчик            | Что для этого нужно                 |
+| вилочка              | Что для этого нужно                 |
+| блюдце               | Что для этого нужно                 |
+| салфетка             | Что для этого нужно                 |
+| зубочистка           | Что для этого нужно                 |
++----------------------+-------------------------------------+
+21 rows in set (0.00 sec)
+
+
+-- 3.(по желанию) Пусть имеется таблица рейсов flights (id, from, to) и таблица городов cities (label, name). 
+-- Поля from, to и label содержат английские названия городов, поле name — русское. Выведите список рейсов flights с русскими названиями городов.
+
+mysql> select f.id, d.name as "from", a.name as "to" from flights f left join cities d on f.c_from = d.label left join cities a on f.c_to = a.label order by f.id;
+
++----+------------------+----------------+
+| id | from             | to             |
++----+------------------+----------------+
+|  1 | Москва           | Омск           |
+|  2 | Новгород         | Казань         |
+|  3 | Иркутск          | Москва         |
+|  4 | Омск             | Иркутск        |
+|  5 | Москва           | Казань         |
++----+------------------+----------------+
+5 rows in set (0.00 sec)
+
+
+
