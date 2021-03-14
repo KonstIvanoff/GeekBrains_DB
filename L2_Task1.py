@@ -1,37 +1,38 @@
-import requests, json, time
+import requests, json, time, pickle, re
 from bs4 import BeautifulSoup as bsp
-import pickle
 from pprint import pprint
-import re
+from pymongo import MongoClient
+
+# парсинг строки зарплат
+def parse_salary(self, sal):
+        c1 = None
+        c2 = None
+        val = ['']
+
+        if sal == '':
+                return c1, c2, val[0]
+
+        mystr = sal.replace(' ', '').replace(chr(160), '')
+        res = re.findall(r'\d+', mystr)
+        # print(sal, mystr, res)
+        if len(res) == 2:
+                c1, c2 = res[0], res[1]
+        elif len(res) == 1:
+                try:
+                        i = mystr.index('от')
+                        c1, c2 = res[0], None
+                except ValueError:
+                        c1, c2 = res[0], res[0]
+
+        if len(res) > 0:
+                val = re.findall(r'\D{3}', mystr)
+
+        return [c1, c2, val[0]]
 
 class hh_parsing():
         def __init__(self, whatfind, filepth):
             self.whatfind = whatfind
             self.filepth = filepth
-
-        # парсинг строки зарплат
-        def parse_salary(self, sal):
-                c1 = None
-                c2 = None
-                val = ['']
-
-                if sal == '':
-                        return c1, c2, val[0]
-
-                mystr = sal.replace(' ', '').replace(chr(160), '')
-                res = re.findall(r'\d+', mystr)
-                # print(sal, mystr, res)
-                if len(res) == 2:
-                        c1, c2 = res[0], res[1]
-                elif len(res) == 1:
-                        try:
-                                i = mystr.index('от')
-                                c1, c2 = res[0], None
-                        except ValueError:
-                                c1, c2 = None, res[0]
-
-                if len(res) > 0:
-                        val = re.findall(r'\D{3}', mystr)
 
         # разбор вакансий
         def parse_vac(self, vacs):
@@ -44,7 +45,7 @@ class hh_parsing():
                         currentvac['link'] = vacinfo['href']
                         mysal = i.findChild(attrs={'class': 'vacancy-serp-item__sidebar'}).text
                         currentvac['salary'] = mysal
-                        mysalparsed = self.parse_salary(mysal)
+                        mysalparsed = parse_salary(mysal)
                         currentvac['salary_min'], currentvac['salary_max'], currentvac['salary_currency'] = map(
                                 lambda x: x, mysalparsed)
                         currentvac['company'] = i.findChild('div', attrs={
@@ -66,12 +67,6 @@ class hh_parsing():
 
                 while True:
                         qr = requests.get(base_url, headers=myheaders, params=myparams, proxies=myproxy)
-
-                        # with open('hhdoc.rsp','wb') as st:
-                        #         pickle.dump(qr.text, st)
-                        #
-                        # with open ('hhdoc.rsp', 'rb') as st:
-                        #         mydoc = pickle.load(st)
 
                         if not qr.status_code == 200:
                                 print('Запрос страницы отработал некорректно!')
@@ -114,33 +109,7 @@ class superjob_parsing():
             self.whatfind = whatfind
             self.filepth = filepth
 
-        # парсинг строки зарплат
-        def parse_salary(self, sal):
-                c1 = None
-                c2 = None
-                val = ['']
-
-                if sal == '':
-                        return c1, c2, val[0]
-
-                mystr = sal.replace(' ', '').replace(chr(160), '')
-                res = re.findall(r'\d+', mystr)
-                # print(sal, mystr, res)
-                if len(res) == 2:
-                        c1, c2 = res[0], res[1]
-                elif len(res) == 1:
-                        try:
-                                i = mystr.index('от')
-                                c1, c2 = res[0], None
-                        except ValueError:
-                                c1, c2 = None, res[0]
-
-                if len(res) > 0:
-                        val = re.findall(r'\D{3}', mystr)
-
-                return [c1, c2, val[0]]
-
-        def parse(self):
+       def parse(self):
                 base_url = 'https://www.superjob.ru/vacancy/search'
                 myparams = {'keywords': self.whatfind, 'noGeo':'1'}
                 myheaders = {
@@ -167,7 +136,7 @@ class superjob_parsing():
                                                 currentvac['link'] = 'www.superjob.ru' + titl.findChild('a')['href']
                                                 currentvac['salary'] = i.findChild('span', attrs={
                                                         'class': '_3mfro _2Wp8I PlM3e _2JVkc _2VHxz'}).text
-                                                mysalparsed = self.parse_salary(currentvac['salary'])
+                                                mysalparsed = parse_salary(currentvac['salary'])
                                                 currentvac['salary_min'], currentvac['salary_max'], currentvac[
                                                         'salary_currency'] = map(lambda x: x, mysalparsed)
                                                 currentvac['company'] = i.findChild('span', attrs={
@@ -175,6 +144,7 @@ class superjob_parsing():
                                                 currentvac['address'] = i.findChild('span', attrs={
                                                         'class': '_3mfro f-test-text-company-item-location _9fXTd _2JVkc _2VHxz'}).text
                                         except:
+                                                # pprint(i)
                                                 continue
                                         myvacancies.append(currentvac)
                                 print(f'Обработано страниц {str(mypage)}')
@@ -193,7 +163,7 @@ class superjob_parsing():
 hh = hh_parsing('C++','hhcc.json')
 hh.parse()
 
-sj = superjob_parsing('C++','sjcc.json')
+sj = superjob_parsing('SQL Server','sjcc.json')
 sj.parse()
 
 
