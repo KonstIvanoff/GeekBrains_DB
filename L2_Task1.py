@@ -71,7 +71,7 @@ class hh_parsing():
                         if not qr.status_code == 200:
                                 print('Запрос страницы отработал некорректно!')
                                 mypage += 1
-                                myparams = {'L_is_autosearch': 'false', 'clusters': 'true', 'enable_snippets': 'true', 'text': 'PLSQL',
+                                myparams = {'L_is_autosearch': 'false', 'clusters': 'true', 'enable_snippets': 'true', 'text': self.whatfind,
                                             'page': str(mypage)}
                                 time.sleep(2)
                                 continue
