@@ -4,7 +4,7 @@ from pprint import pprint
 from pymongo import MongoClient
 
 # парсинг строки зарплат
-def parse_salary(self, sal):
+def parse_salary(sal):
         c1 = None
         c2 = None
         val = ['']
@@ -36,72 +36,71 @@ class hh_parsing():
 
         # разбор вакансий
         def parse_vac(self, vacs):
-                res = []
-                for i in vacs:
-                        currentvac = {}
-                        vacinfo = i.findChild(attrs={'class': 'vacancy-serp-item__info'}).find('a')
-                        currentvac['source'] = 'hh.ru'
-                        currentvac['name'] = vacinfo.text
-                        currentvac['link'] = vacinfo['href']
-                        mysal = i.findChild(attrs={'class': 'vacancy-serp-item__sidebar'}).text
-                        currentvac['salary'] = mysal
-                        mysalparsed = parse_salary(mysal)
-                        currentvac['salary_min'], currentvac['salary_max'], currentvac['salary_currency'] = map(
-                                lambda x: x, mysalparsed)
-                        currentvac['company'] = i.findChild('div', attrs={
-                                'class': 'vacancy-serp-item__meta-info-company'}).text
-                        currentvac['address'] = i.findChild('span', attrs={
-                                'data-qa': 'vacancy-serp__vacancy-address'}).text
-                        res.append(currentvac)
-                return res
-
+            res = []
+            for i in vacs:
+                    currentvac = {}
+                    vacinfo = i.findChild(attrs={'class': 'vacancy-serp-item__info'}).find('a')
+                    currentvac['source'] = 'hh.ru'
+                    currentvac['name'] = vacinfo.text
+                    currentvac['link'] = vacinfo['href']
+                    mysal = i.findChild(attrs={'class': 'vacancy-serp-item__sidebar'}).text
+                    currentvac['salary'] = mysal
+                    mysalparsed = parse_salary(mysal)
+                    currentvac['salary_min'], currentvac['salary_max'], currentvac['salary_currency'] = map(
+                            lambda x: x, mysalparsed)
+                    currentvac['company'] = i.findChild('div', attrs={
+                            'class': 'vacancy-serp-item__meta-info-company'}).text
+                    currentvac['address'] = i.findChild('span', attrs={
+                            'data-qa': 'vacancy-serp__vacancy-address'}).text
+                    res.append(currentvac)
+            return res
 
         def parse(self):
-                base_url = 'https://hh.ru/search/vacancy'
-                myparams = {'clusters':'true', 'enable_snippets':'true', 'salary':'', 'st':'searchVacancy', 'text':self.whatfind, 'from':'suggest_post'}
-                myheaders = {'User-Agent':'Mozilla/5.0 (Windows; U; Windows NT 5.1; ru-RU) AppleWebKit/533.18.1 (KHTML, like Gecko) Version/5.0.2 Safari/533.18.5'}
-                myproxy = {'https': 'https://51.158.107.202:9999'}
+            base_url = 'https://hh.ru/search/vacancy'
+            myparams = {'clusters':'true', 'enable_snippets':'true', 'salary':'', 'st':'searchVacancy', 'text':self.whatfind, 'from':'suggest_post'}
+            myheaders = {'User-Agent':'Mozilla/5.0 (Windows; U; Windows NT 5.1; ru-RU) AppleWebKit/533.18.1 (KHTML, like Gecko) Version/5.0.2 Safari/533.18.5'}
+            myproxy = {'https': 'https://51.158.107.202:9999'}
 
-                myvacancies = []
-                mypage = 0
+            myvacancies = []
+            mypage = 0
 
-                while True:
-                        qr = requests.get(base_url, headers=myheaders, params=myparams, proxies=myproxy)
+            while True:
+                qr = requests.get(base_url, headers=myheaders, params=myparams, proxies=myproxy)
 
-                        if not qr.status_code == 200:
-                                print('Запрос страницы отработал некорректно!')
-                                mypage += 1
-                                myparams = {'L_is_autosearch': 'false', 'clusters': 'true', 'enable_snippets': 'true', 'text': self.whatfind,
-                                            'page': str(mypage)}
-                                time.sleep(2)
-                                continue
-                        mydoc = qr.text
-                        mysoup = bsp(mydoc,'html.parser')
+                if not qr.status_code == 200:
+                        print('Запрос страницы отработал некорректно!')
+                        mypage += 1
+                        myparams = {'L_is_autosearch': 'false', 'clusters': 'true', 'enable_snippets': 'true', 'text': self.whatfind,
+                                    'page': str(mypage)}
+                        time.sleep(2)
+                        continue
+                mydoc = qr.text
+                mysoup = bsp(mydoc,'html.parser')
 
-                        # тег, содержащий вакансии
-                        root = mysoup.find(attrs={'class':'vacancy-serp'})
-                        # выбираем вакансии
-                        # премиальные вакансии
-                        vacs = root.findChildren('div', attrs={'data-qa': 'vacancy-serp__vacancy vacancy-serp__vacancy_premium', 'class': ['vacancy-serp-item', 'vacancy-serp-item_premium']}, recursive=False)
-                        myvacancies += self.parse_vac(vacs)
-                        # обычные вакансии
-                        vacs = root.findChildren('div', attrs={'data-qa': 'vacancy-serp__vacancy'},recursive=False)
-                        myvacancies += self.parse_vac(vacs)
+                # тег, содержащий вакансии
+                root = mysoup.find(attrs={'class':'vacancy-serp'})
+                # выбираем вакансии
+                # премиальные вакансии
+                vacs = root.findChildren('div', attrs={'data-qa': 'vacancy-serp__vacancy vacancy-serp__vacancy_premium', 'class': ['vacancy-serp-item', 'vacancy-serp-item_premium']}, recursive=False)
+                myvacancies += self.parse_vac(vacs)
+                # обычные вакансии
+                vacs = root.findChildren('div', attrs={'data-qa': 'vacancy-serp__vacancy'},recursive=False)
+                myvacancies += self.parse_vac(vacs)
 
-                        # ищем кнопку "Дальше"
-                        buttons = mysoup.find('div', attrs={'data-qa': 'pager-block'})
-                        buttonnext = buttons.findChild('a', text='дальше')
-                        print(f'Обработано страниц {str(mypage + 1)}')
-                        # break
-                        if buttonnext == None:
-                                break
-                        else:
-                                mypage += 1
-                                myparams = {'L_is_autosearch':'false', 'clusters':'true', 'enable_snippets':'true', 'text':self.whatfind, 'page':str(mypage)}
-                                time.sleep(2)
+                # ищем кнопку "Дальше"
+                buttons = mysoup.find('div', attrs={'data-qa': 'pager-block'})
+                buttonnext = buttons.findChild('a', text='дальше')
+                print(f'Обработано страниц {str(mypage + 1)}')
+                # break
+                if buttonnext == None:
+                        break
+                else:
+                        mypage += 1
+                        myparams = {'L_is_autosearch':'false', 'clusters':'true', 'enable_snippets':'true', 'text':self.whatfind, 'page':str(mypage)}
+                        time.sleep(2)
 
-                with open (self.filepth,'w') as f:
-                        json.dump(myvacancies, f, indent=2, ensure_ascii=False)
+            with open (self.filepth,'w') as f:
+                json.dump(myvacancies, f, indent=2, ensure_ascii=False)
 
 
 class superjob_parsing():
@@ -109,7 +108,7 @@ class superjob_parsing():
             self.whatfind = whatfind
             self.filepth = filepth
 
-       def parse(self):
+        def parse(self):
                 base_url = 'https://www.superjob.ru/vacancy/search'
                 myparams = {'keywords': self.whatfind, 'noGeo':'1'}
                 myheaders = {
@@ -163,7 +162,7 @@ class superjob_parsing():
 hh = hh_parsing('C++','hhcc.json')
 hh.parse()
 
-sj = superjob_parsing('SQL Server','sjcc.json')
+sj = superjob_parsing('C++','sjcc.json')
 sj.parse()
 
 
